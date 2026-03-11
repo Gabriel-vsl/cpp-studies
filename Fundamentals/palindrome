@@ -1,0 +1,32 @@
+#include <iostream>
+#include <string>
+#include <algorithm>
+
+// Define is_palindrome() here:
+/* 
+bool is_palindrome(std::string text)
+{
+    for(int i = 0; i <= text.length()-1; i++)
+    {
+        if(text[i] != text[text.length()-1-i])
+        {
+            return false;
+        }
+    }
+    return true;
+}
+*/
+
+// Solution with modern C++
+bool is_palindrome(std::string text)
+{
+    return std::equal(text.begin(), text.begin() + text.size() / 2, text.rbegin());
+}
+
+int main() {
+  
+  std::cout << is_palindrome("madam") << "\n";
+  std::cout << is_palindrome("ada") << "\n";
+  std::cout << is_palindrome("lovelace") << "\n";
+  
+}
