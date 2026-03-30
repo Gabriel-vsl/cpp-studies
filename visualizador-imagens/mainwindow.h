@@ -17,7 +17,15 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
 
+private slots:
+    void on_carregar_imagem_clicked();
+    void updateImage();
+
 private:
     Ui::MainWindow *ui;
+    QImage originalImage;
+    QImage imagem;
+    QImage processedImage;
+
 };
 #endif // MAINWINDOW_H
