@@ -92,7 +92,6 @@ void MainWindow::on_carregar_imagem_clicked()
 
 void MainWindow::updateImage()
 {
-    qDebug() << "Atualizando imagem...";
     qDebug() << ui->slider_brilho->value();
     qDebug() << ui->slider_contraste->value();
 
@@ -102,13 +101,13 @@ void MainWindow::updateImage()
     int brightness = ui->slider_brilho->value();
     double contrast = ui->slider_contraste->value() / 100.0;
 
-    QImage img = imagem;
+    QImage img = imagem.convertToFormat(QImage::Format_ARGB32);
 
     for (int y = 0; y < img.height(); y++)
     {
         for (int x = 0; x < img.width(); x++)
         {
-            QColor c = QColor::fromRgb(imagem.pixel(x, y));
+            QColor c = QColor::fromRgb(img.pixel(x, y));
 
             int r = std::clamp(int(contrast * c.red() + brightness), 0, 255);
             int g = std::clamp(int(contrast * c.green() + brightness), 0, 255);
@@ -124,6 +123,7 @@ void MainWindow::updateImage()
     int h = ui->imagem->height();
 
     ui->imagem->setPixmap(
-        QPixmap::fromImage(processedImage).scaled(w, h, Qt::KeepAspectRatio)
-        );
+        QPixmap::fromImage(processedImage).scaled(w, h, Qt::KeepAspectRatio));
+
+    qDebug() << "Imagem atualizada";
 }
