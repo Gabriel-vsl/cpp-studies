@@ -9,6 +9,7 @@
 #include <QFileInfo>
 #include <QColor>
 #include <algorithm>
+#include <QMouseEvent>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -19,9 +20,13 @@ MainWindow::MainWindow(QWidget *parent)
     ui->slider_contraste->setRange(0, 200);
     ui->slider_brilho->setEnabled(false);
     ui->slider_contraste->setEnabled(false);
+    ui->imagem->setMouseTracking(true);
+    ui->imagem->installEventFilter(this);
 
     connect(ui->slider_brilho, &QSlider::valueChanged, this, &MainWindow::updateImage);
     connect(ui->slider_contraste, &QSlider::valueChanged, this, &MainWindow::updateImage);
+    connect(ui->lista_imagens, &QListWidget::currentRowChanged, this, &MainWindow::loadImage);
+
 }
 
 MainWindow::~MainWindow()
@@ -31,9 +36,34 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_carregar_imagem_clicked()
 {
-    QString file_name = QFileDialog::getOpenFileName(this, tr("Abrir Arquivo"), QDir::homePath(), tr("Imagens (*.png *.jpg *.jpeg *.bmp)"));
+    QStringList arquivos = QFileDialog::getOpenFileNames(this, tr("Abrir Arquivo"), QDir::homePath(), tr("Imagens (*.png *.jpg *.jpeg *.bmp)"));
 
-    if (!file_name.isEmpty())
+    for (const QString &file_name : std::as_const(arquivos))
+    {
+        QImage img(file_name);
+
+        if (img.isNull())
+            continue;
+
+        QFileInfo fileInfo(file_name);
+
+        ImageData data;
+        data.name = fileInfo.fileName();
+
+        data.original = img;
+        data.processada = img;
+
+        imagens.push_back(data);
+        ui->lista_imagens->addItem(data.name);
+    }
+
+    if (!imagens.empty() && currentIndex == -1)
+    {
+        ui->lista_imagens->setCurrentRow(0);
+    }
+}
+/*
+    if (!imagem.isEmpty && currentIndex == -1())
     {
         QMessageBox::information(this, "...", file_name);
 
@@ -89,19 +119,51 @@ void MainWindow::on_carregar_imagem_clicked()
         ui->valor_dimensoes_imagem->setText(QString::fromStdString("W: " + std::to_string(cols) + "  H: " + std::to_string(rows)));
     }
 }
+*/
+
+void MainWindow::loadImage(int index)
+{
+    if (index < 0 || index >= imagens.size())
+        return;
+
+    currentIndex = index;
+
+    imagem = imagens[index].original;
+    imagem_processada = imagens[index].processada;
+
+    ui->slider_brilho->setEnabled(true);
+    ui->slider_contraste->setEnabled(true);
+
+    ui->slider_brilho->setValue(0);
+    ui->slider_contraste->setValue(100);
+
+    int w = ui->imagem->width();
+    int h = ui->imagem->height();
+
+    ui->imagem->setPixmap(
+        QPixmap::fromImage(imagem).scaled(w, h, Qt::KeepAspectRatio)
+        );
+
+    int cols = imagem.width();
+    int rows = imagem.height();
+
+    ui->valor_dimensoes_imagem->setText(
+        QString("W: %1  H: %2").arg(cols).arg(rows)
+        );
+}
 
 void MainWindow::updateImage()
 {
     //qDebug() << ui->slider_brilho->value();
     //qDebug() << ui->slider_contraste->value();
 
-    if (imagem.isNull())
+    if (currentIndex < 0)
         return;
 
     int brightness = ui->slider_brilho->value();
     double contrast = ui->slider_contraste->value() / 100.0;
 
-    QImage img = imagem.convertToFormat(QImage::Format_ARGB32);
+    QImage img = imagens[currentIndex].original.convertToFormat(QImage::Format_ARGB32);
 
     for (int y = 0; y < img.height(); y++)
     {
@@ -117,13 +179,61 @@ void MainWindow::updateImage()
         }
     }
 
-    processedImage = img;
+    imagens[currentIndex].processada = img;
 
     int w = ui->imagem->width();
     int h = ui->imagem->height();
 
     ui->imagem->setPixmap(
-        QPixmap::fromImage(processedImage).scaled(w, h, Qt::KeepAspectRatio));
+        QPixmap::fromImage(img).scaled(w, h, Qt::KeepAspectRatio));
 
     //qDebug() << "Imagem atualizada";
 }
+
+bool MainWindow::eventFilter(QObject *obj, QEvent *event)
+{
+    if (obj == ui->imagem)
+    {
+
+        if (event->type() == QEvent::MouseButtonPress)
+        {
+            QMouseEvent *e = static_cast<QMouseEvent*>(event);
+            dragging = true;
+            lastMousePos = e->pos();
+            return true;
+        }
+
+        if (event->type() == QEvent::MouseButtonRelease)
+        {
+            dragging = false;
+            return true;
+        }
+
+        if (event->type() == QEvent::MouseMove && dragging)
+        {
+            QMouseEvent *e = static_cast<QMouseEvent*>(event);
+
+            QPoint delta = e->pos() - lastMousePos;
+
+            int brightness = ui->slider_brilho->value();
+            int contrast   = ui->slider_contraste->value();
+
+            brightness += delta.x() / 2;
+
+            contrast -= delta.y() / 2;
+
+            brightness = std::clamp(brightness, -100, 100);
+            contrast   = std::clamp(contrast, 0, 200);
+
+            ui->slider_brilho->setValue(brightness);
+            ui->slider_contraste->setValue(contrast);
+
+            lastMousePos = e->pos();
+
+            return true;
+        }
+    }
+    return QMainWindow::eventFilter(obj, event);
+}
+
+
