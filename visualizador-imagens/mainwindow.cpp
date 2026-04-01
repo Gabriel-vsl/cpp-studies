@@ -31,13 +31,13 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_carregar_imagem_clicked()
 {
-    QString file_name = QFileDialog::getOpenFileName(this, tr("Abrir Arquivo"), QDir::homePath(), tr("Images (*.png *.jpg *.jpeg *.bmp)"));
+    QString file_name = QFileDialog::getOpenFileName(this, tr("Abrir Arquivo"), QDir::homePath(), tr("Imagens (*.png *.jpg *.jpeg *.bmp)"));
 
     if (!file_name.isEmpty())
     {
         QMessageBox::information(this, "...", file_name);
 
-        QImage imagem(file_name);
+        imagem = QImage(file_name);
         QPixmap pix = QPixmap::fromImage(imagem);
 
         if (imagem.isNull())
@@ -92,8 +92,8 @@ void MainWindow::on_carregar_imagem_clicked()
 
 void MainWindow::updateImage()
 {
-    qDebug() << ui->slider_brilho->value();
-    qDebug() << ui->slider_contraste->value();
+    //qDebug() << ui->slider_brilho->value();
+    //qDebug() << ui->slider_contraste->value();
 
     if (imagem.isNull())
         return;
@@ -125,5 +125,5 @@ void MainWindow::updateImage()
     ui->imagem->setPixmap(
         QPixmap::fromImage(processedImage).scaled(w, h, Qt::KeepAspectRatio));
 
-    qDebug() << "Imagem atualizada";
+    //qDebug() << "Imagem atualizada";
 }
