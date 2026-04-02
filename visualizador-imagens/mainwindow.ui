@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>808</width>
-    <height>434</height>
+    <width>892</width>
+    <height>477</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,7 +17,7 @@
    <widget class="QPushButton" name="carregar_imagem">
     <property name="geometry">
      <rect>
-      <x>140</x>
+      <x>80</x>
       <y>30</y>
       <width>75</width>
       <height>31</height>
@@ -131,7 +131,7 @@
    <widget class="QSlider" name="slider_brilho">
     <property name="geometry">
      <rect>
-      <x>520</x>
+      <x>500</x>
       <y>190</y>
       <width>160</width>
       <height>22</height>
@@ -144,10 +144,10 @@
    <widget class="QSlider" name="slider_contraste">
     <property name="geometry">
      <rect>
-      <x>520</x>
-      <y>220</y>
-      <width>22</width>
-      <height>160</height>
+      <x>500</x>
+      <y>240</y>
+      <width>31</width>
+      <height>151</height>
      </rect>
     </property>
     <property name="orientation">
@@ -159,7 +159,7 @@
      <rect>
       <x>40</x>
       <y>80</y>
-      <width>281</width>
+      <width>381</width>
       <height>61</height>
      </rect>
     </property>
@@ -169,12 +169,35 @@
      <rect>
       <x>40</x>
       <y>160</y>
-      <width>321</width>
-      <height>211</height>
+      <width>381</width>
+      <height>271</height>
      </rect>
     </property>
     <property name="text">
      <string>Imagem</string>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="modo">
+    <property name="geometry">
+     <rect>
+      <x>230</x>
+      <y>40</y>
+      <width>151</width>
+      <height>22</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="salvar_imagem">
+    <property name="geometry">
+     <rect>
+      <x>720</x>
+      <y>40</y>
+      <width>75</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Salvar</string>
     </property>
    </widget>
   </widget>
@@ -183,7 +206,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>808</width>
+     <width>892</width>
      <height>22</height>
     </rect>
    </property>

@@ -10,6 +10,7 @@
 #include <QColor>
 #include <algorithm>
 #include <QMouseEvent>
+#include <QPainter>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -22,11 +23,18 @@ MainWindow::MainWindow(QWidget *parent)
     ui->slider_contraste->setEnabled(false);
     ui->imagem->setMouseTracking(true);
     ui->imagem->installEventFilter(this);
+    ui->imagem->setScaledContents(false);
+    ui->imagem->setAlignment(Qt::AlignCenter);
+    ui->modo->addItem("Brilho e Contraste");
+    ui->modo->addItem("Pan");
+    ui->modo->addItem("Zoom");
+    ui->modo->addItem("Rotação");
 
     connect(ui->slider_brilho, &QSlider::valueChanged, this, &MainWindow::updateImage);
     connect(ui->slider_contraste, &QSlider::valueChanged, this, &MainWindow::updateImage);
     connect(ui->lista_imagens, &QListWidget::currentRowChanged, this, &MainWindow::loadImage);
-
+    connect(ui->modo,
+            QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int index) {mode = static_cast<InteractionMode>(index);});
 }
 
 MainWindow::~MainWindow()
@@ -62,64 +70,6 @@ void MainWindow::on_carregar_imagem_clicked()
         ui->lista_imagens->setCurrentRow(0);
     }
 }
-/*
-    if (!imagem.isEmpty && currentIndex == -1())
-    {
-        QMessageBox::information(this, "...", file_name);
-
-        imagem = QImage(file_name);
-        QPixmap pix = QPixmap::fromImage(imagem);
-
-        if (imagem.isNull())
-        {
-            QMessageBox::warning(this, "Erro", "Falha ao carregar imagem");
-            return;
-        }
-
-
-        QFileInfo fileInfo(file_name);
-        QString short_name = fileInfo.fileName();
-        ui->valor_nome_imagem->setText(short_name);
-
-
-        ui->slider_brilho->setEnabled(true);
-        ui->slider_contraste->setEnabled(true);
-        ui->slider_brilho->setValue(0);
-        ui->slider_contraste->setValue(100);
-
-
-        int w = ui->imagem->width();
-        int h = ui->imagem->height();
-        ui->imagem->setPixmap(pix.scaled(w, h, Qt::KeepAspectRatio));
-
-
-        unsigned int cols = imagem.width();
-        unsigned int rows = imagem.height();
-        unsigned int numBlackPixels = 0;
-        QVector<QVector<int>> imgArray(rows,QVector<int>(cols, 0));
-
-        for (unsigned int i = 0; i < rows; i++)
-        {
-            for (unsigned int j = 0; j < cols; j++)
-            {
-                QColor clrCurrent(imagem.pixel( j, i ));
-                int r = clrCurrent.red();
-                int g = clrCurrent.green();
-                int b = clrCurrent.blue();
-                int a = clrCurrent.alpha();
-
-                if (r+g+b < 20 && a > 240)
-                {
-                    imgArray[i][j] = 1;
-                    numBlackPixels+=1;
-                }
-            }
-        }
-
-        ui->valor_dimensoes_imagem->setText(QString::fromStdString("W: " + std::to_string(cols) + "  H: " + std::to_string(rows)));
-    }
-}
-*/
 
 void MainWindow::loadImage(int index)
 {
@@ -130,6 +80,10 @@ void MainWindow::loadImage(int index)
 
     imagem = imagens[index].original;
     imagem_processada = imagens[index].processada;
+
+    scaleFactor = 1.0;
+    rotationAngle = 0.0;
+    panOffset = QPoint(0, 0);
 
     ui->slider_brilho->setEnabled(true);
     ui->slider_contraste->setEnabled(true);
@@ -180,12 +134,7 @@ void MainWindow::updateImage()
     }
 
     imagens[currentIndex].processada = img;
-
-    int w = ui->imagem->width();
-    int h = ui->imagem->height();
-
-    ui->imagem->setPixmap(
-        QPixmap::fromImage(img).scaled(w, h, Qt::KeepAspectRatio));
+    renderImage();
 
     //qDebug() << "Imagem atualizada";
 }
@@ -202,38 +151,154 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
             lastMousePos = e->pos();
             return true;
         }
-
         if (event->type() == QEvent::MouseButtonRelease)
         {
             dragging = false;
             return true;
         }
-
         if (event->type() == QEvent::MouseMove && dragging)
         {
             QMouseEvent *e = static_cast<QMouseEvent*>(event);
-
             QPoint delta = e->pos() - lastMousePos;
 
-            int brightness = ui->slider_brilho->value();
-            int contrast   = ui->slider_contraste->value();
+            switch (mode)
+            {
+                case Adjust:
+            {
+                    int brightness = ui->slider_brilho->value();
+                    int contrast   = ui->slider_contraste->value();
 
-            brightness += delta.x() / 2;
+                    brightness += delta.x() / 2;
+                    contrast   -= delta.y() / 2;
 
-            contrast -= delta.y() / 2;
+                    brightness = std::clamp(brightness, -100, 100);
+                    contrast   = std::clamp(contrast, 0, 200);
 
-            brightness = std::clamp(brightness, -100, 100);
-            contrast   = std::clamp(contrast, 0, 200);
+                    ui->slider_brilho->setValue(brightness);
+                    ui->slider_contraste->setValue(contrast);
+                    break;
+            }
 
-            ui->slider_brilho->setValue(brightness);
-            ui->slider_contraste->setValue(contrast);
+                case PanMode:
+            {
+                    panOffset += delta;
+                    renderImage();
+                    break;
+            }
 
+                case ZoomMode:
+            {
+                    scaleFactor *= std::pow(1.001, -delta.y());
+                    scaleFactor = std::clamp(scaleFactor, 0.1, 5.0);
+                    renderImage();
+                    break;
+            }
+
+                case RotateMode:
+            {
+                    rotationAngle += delta.x() * 0.5;
+                    renderImage();
+                    break;
+            }
+
+                default:
+                    break;
+        }
             lastMousePos = e->pos();
-
             return true;
         }
     }
     return QMainWindow::eventFilter(obj, event);
 }
 
+void MainWindow::renderImage()
+{
+    if (currentIndex < 0) return;
 
+    QImage img = imagens[currentIndex].processada;
+    QPixmap pix = QPixmap::fromImage(img);
+
+    int w = ui->imagem->width();
+    int h = ui->imagem->height();
+
+    double scaleX = (double)w / pix.width();
+    double scaleY = (double)h / pix.height();
+    double baseScale = std::min(scaleX, scaleY);
+
+    QTransform transform;
+
+    transform.translate(w / 2, h / 2);
+
+    transform.scale(baseScale, baseScale);
+    transform.scale(scaleFactor, scaleFactor);
+    transform.rotate(rotationAngle);
+    transform.translate(-pix.width() / 2, -pix.height() / 2);
+    transform.translate(panOffset.x(), panOffset.y());
+
+    QPixmap result(w, h);
+    result.fill(Qt::black);
+
+    QPainter painter(&result);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+    painter.setTransform(transform);
+    painter.drawPixmap(0, 0, pix);
+
+    ui->imagem->setPixmap(result);
+}
+
+QPixmap MainWindow::getRenderedPixmap()
+{
+    if (currentIndex < 0)
+        return QPixmap();
+
+    QImage img = imagens[currentIndex].processada;
+    QPixmap pix = QPixmap::fromImage(img);
+
+    int w = ui->imagem->width();
+    int h = ui->imagem->height();
+
+    double scaleX = (double)w / pix.width();
+    double scaleY = (double)h / pix.height();
+    double baseScale = std::min(scaleX, scaleY);
+
+    QTransform transform;
+
+    transform.translate(w / 2, h / 2);
+    transform.scale(baseScale, baseScale);
+    transform.scale(scaleFactor, scaleFactor);
+    transform.rotate(rotationAngle);
+    transform.translate(-pix.width() / 2, -pix.height() / 2);
+    transform.translate(panOffset.x(), panOffset.y());
+
+    QPixmap result(w, h);
+    result.fill(Qt::black);
+
+    QPainter painter(&result);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+    painter.setTransform(transform);
+    painter.drawPixmap(0, 0, pix);
+
+    return result;
+}
+
+void MainWindow::on_salvar_imagem_clicked()
+{
+    if (currentIndex < 0)
+        return;
+
+    QString fileName = QFileDialog::getSaveFileName(
+        this, "Salvar Imagem", QDir::homePath() + "/imagem_editada.png", "PNG (*.png);;JPEG (*.jpg *.jpeg);;BMP (*.bmp)");
+
+    if (fileName.isEmpty()) return;
+
+    QPixmap pix = getRenderedPixmap();
+
+    if (!pix.save(fileName))
+    {
+        QMessageBox::warning(this, "Erro", "Falha ao salvar imagem");
+    }
+    else
+    {
+        QMessageBox::information(this, "Sucesso", "Imagem salva com sucesso!");
+    }
+}
