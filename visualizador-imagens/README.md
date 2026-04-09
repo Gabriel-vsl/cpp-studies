@@ -108,7 +108,7 @@ Exibição
 Salvar imagem final
 
 
-
+---
 
 ## 👨‍💻 Autor
 
