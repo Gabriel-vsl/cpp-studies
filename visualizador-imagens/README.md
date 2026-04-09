@@ -106,7 +106,7 @@ Renderização (QPainter)
 Exibição
       ↓
 Salvar imagem final
-
+```
 
 ---
 
@@ -115,3 +115,4 @@ Salvar imagem final
 Gabriel Vieira  
 Engenheiro Eletrônico  
 
+---
