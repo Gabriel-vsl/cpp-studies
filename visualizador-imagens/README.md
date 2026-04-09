@@ -63,7 +63,7 @@ O sistema permite carregar múltiplas imagens, aplicar ajustes de brilho e contr
 
 ```
 # Clone o repositório
-git clone https://github.com/Gabriel-vsl/cpp-studies/tree/main/visualizador-imagens
+git clone https://github.com/Gabriel-vsl/cpp-studies.git
 
 
 # Abra no Qt Creator
