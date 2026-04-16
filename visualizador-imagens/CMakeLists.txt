@@ -10,16 +10,18 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools Test)
 
 set(TS_FILES visualizador-imagens_pt_BR.ts)
 
 set(PROJECT_SOURCES
-        main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        mainwindow.ui
-        ${TS_FILES}
+    main.cpp
+    mainwindow.cpp
+    mainwindow.h
+    mainwindow.ui
+    imageprocessor.cpp
+    imageprocessor.h
+    ${TS_FILES}
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -75,3 +77,18 @@ install(TARGETS visualizador-imagens
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(visualizador-imagens)
 endif()
+
+# =========================
+# TESTES
+# =========================
+
+qt_add_executable(test_imageprocessor
+    teste_imageprocessor.cpp
+    imageprocessor.cpp
+)
+
+target_link_libraries(test_imageprocessor
+    PRIVATE Qt6::Test Qt6::Gui
+)
+
+add_test(NAME TestImageProcessor COMMAND test_imageprocessor)

@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <QMouseEvent>
 #include <QPainter>
+#include "imageprocessor.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -106,37 +107,24 @@ void MainWindow::loadImage(int index)
         );
 }
 
+
+
 void MainWindow::updateImage()
 {
-    //qDebug() << ui->slider_brilho->value();
-    //qDebug() << ui->slider_contraste->value();
-
     if (currentIndex < 0)
         return;
 
     int brightness = ui->slider_brilho->value();
     double contrast = ui->slider_contraste->value() / 100.0;
 
-    QImage img = imagens[currentIndex].original.convertToFormat(QImage::Format_ARGB32);
+    imagens[currentIndex].processada =
+        ImageProcessor::applyBrightnessContrast(
+            imagens[currentIndex].original,
+            brightness,
+            contrast
+            );
 
-    for (int y = 0; y < img.height(); y++)
-    {
-        for (int x = 0; x < img.width(); x++)
-        {
-            QColor c = QColor::fromRgb(img.pixel(x, y));
-
-            int r = std::clamp(int(contrast * c.red() + brightness), 0, 255);
-            int g = std::clamp(int(contrast * c.green() + brightness), 0, 255);
-            int b = std::clamp(int(contrast * c.blue() + brightness), 0, 255);
-
-            img.setPixel(x, y, qRgb(r, g, b));
-        }
-    }
-
-    imagens[currentIndex].processada = img;
     renderImage();
-
-    //qDebug() << "Imagem atualizada";
 }
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *event)
@@ -302,3 +290,15 @@ void MainWindow::on_salvar_imagem_clicked()
         QMessageBox::information(this, "Sucesso", "Imagem salva com sucesso!");
     }
 }
+
+
+void MainWindow::setBrightness(int value)
+{
+    ui->slider_brilho->setValue(value);
+}
+
+void MainWindow::setContrast(int value)
+{
+    ui->slider_contraste->setValue(value);
+}
+

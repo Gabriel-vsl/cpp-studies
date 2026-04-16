@@ -32,15 +32,17 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
 
-private slots:
+public slots:
     void on_carregar_imagem_clicked();
     void updateImage();
     void loadImage(int index);
     void renderImage();
     void on_salvar_imagem_clicked();
     QPixmap getRenderedPixmap();
+    void setBrightness(int value);
+    void setContrast(int value);
 
-private:
+public:
     Ui::MainWindow *ui;
     QImage imagem;
     QImage imagem_processada;
